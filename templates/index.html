@@ -1,0 +1,208 @@
+<html>
+<head>
+    <title>{{.Config.Domain}} XPack License Monitor</title>
+    <script src="https://code.jquery.com/jquery-3.4.0.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .top-buffer {
+            margin-top: 32px;
+            margin-left: 32px;
+            margin-right: 32px;
+        }
+        .bottom-buffer {
+            margin-bottom: 32px;
+        }
+        .navbar-brand small {
+            display: block;
+            font-size: 10px;
+            white-space: normal;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <a class="navbar-brand" href="#">{{.Config.Domain}} XPack License Monitor</a>
+</nav>
+<div class="row top-buffer">
+    <div class="col-lg">
+            <div class="card text-left">
+                    <div class="card-header">
+                        License Info
+                    </div>
+                    <div class="card-body">
+                        <p>{{ .License.IssuedTo }}</p>
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Max Nodes</th>
+                                    <th>Expiry Date</th>
+                                    <th>UID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ .License.Type }}</td>
+                                    <td>{{ .License.MaxNodes }}</td>
+                                    <td>{{ .License.ExpiryTime.Format "Jan 2, 2006" }}</td>
+                                    <td>{{ .License.UID }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+    </div>
+</div>
+<div class="row top-buffer">
+    <div class="col-lg">
+        <div class="card text-left">
+            <div class="card-header">
+                Add A Cluster
+            </div>
+            <div class="card-body">
+                <div class="form-group" id="addform">
+                    <label for="hostname">Datanode Hostname</label>
+                    <input type="text" class="form-control bottom-buffer input-lg" id="hostname" placeholder="*.{{.Config.Domain}}...">
+                    
+                    <a class="btn btn-light bottom-buffer " data-toggle="collapse" href="#advancedoptions" role="button" aria-expanded="false" aria-controls="advancedoptions">
+                        Advanced Options
+                    </a>
+                    <button class="btn btn-primary float-right" onclick='addHost();'>Add</button>
+                    <div class="collapse bottom-buffer" id="advancedoptions">
+                        <div class="card card-body">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="usessl" checked>
+                                <label class="form-check-label" for="usessl">Use SSL</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row top-buffer">
+    <div class="col-lg">
+        <div class="card text-left">
+            <div class="card-header">
+                Clusters
+            </div>
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Cluster Name</th>
+                            <th>Status</th>
+                            <th>Node Count</th>
+                            <th>License Status</th>
+                            <th>Expiry Date</th>
+                            <th>UID</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Clusters }}
+                            <tr>
+                                <td>
+                                    {{ .Status.ClusterName }}
+                                </td>
+                                <td>
+                                    {{ if eq .Status.Status "green" }}
+                                        <span class="badge badge-success">{{ .Status.Status }}</span>
+                                    {{ else if eq .Status.Status "yellow" }}
+                                        <span class="badge badge-warning">{{ .Status.Status }}</span>
+                                    {{ else }}
+                                        <span class="badge badge-danger">{{ .Status.Status }}</span>
+                                    {{ end }}
+                                </td>
+                                <td>{{ .Status.NodeCount }}</td>
+                                <td>
+                                    <span class="badge badge-pill badge-secondary">{{ .License.Type }}</span>
+                                    {{ if eq .License.Status "active" }}
+                                        <span class="badge badge-success">{{ .License.Status }}</span>
+                                    {{ else }}
+                                        <span class="badge badge-danger">{{ .License.Status }}</span>
+                                    {{ end }}
+                                </td>
+                                <td>{{ .License.ExpiryTime.Format "Jan 2, 2006" }}</td>
+                                <td>{{ .License.UID }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-lg" data-toggle="tooltip" data-placement="top" title="Refresh Status" onClick='refresh("{{ .Status.ClusterName }}");'>
+                                        <i class="fa fa-repeat"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-lg" data-toggle="tooltip" data-placement="top" title="Set License" onClick='setLicense("{{ .Status.ClusterName }}");'>
+                                            <i class="fa fa-download"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-lg" data-toggle="tooltip" data-placement="top" title="Remove Cluster" onClick='remove("{{ .Status.ClusterName }}");'>
+                                            <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+    function formError(errorText) {
+        $("#addform").append(`<div class="alert alert-danger alert-dismissible fade show" role="alert">` + errorText + 
+            `<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span></button></div>`);
+        $('.alert').alert();
+    }
+    function addHost() {
+        hostname = $("#hostname").val().trim();
+        if(hostname == "") {
+            formError("hostname was left empty");
+            return
+        }
+
+        object = {
+            hostname: hostname,
+            usessl: $('#usessl').is(":checked")
+        };
+
+        $.getJSON("/add", object, function(data){
+            if(data.error) {
+                formError(data.error);
+                return
+            }
+            document.location.reload(true);
+        });
+    }
+    function refresh(cluster) {
+        object = {
+            cluster: cluster
+        };
+        $.getJSON("/refresh", object, function(data){
+            document.location.reload(true);
+        });
+    }
+    function remove(cluster) {
+        object = {
+            cluster: cluster
+        };
+        $.getJSON("/remove", object, function(data){
+            document.location.reload(true);
+        });
+    }
+    function setLicense(cluster) {
+        object = {
+            cluster: cluster
+        };
+        $.getJSON("/set", object, function(data){
+            document.location.reload(true);
+        });
+    }
+</script>
+</html>

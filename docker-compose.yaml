@@ -1,0 +1,18 @@
+version: "3.7"
+services:
+  monitor:
+    build:
+      context: .
+    image: harrisonmiller/xpack-license-monitor:latest
+    ports:
+     - "80:8080"
+    environment:
+      - DOMAIN=example.com
+    volumes:
+      - type: volume
+        source: data
+        target: /config
+      - ${PWD}/license.json:/license.json
+volumes:
+  data:
+
