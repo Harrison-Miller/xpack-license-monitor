@@ -157,9 +157,21 @@ func add(e *Env, w http.ResponseWriter, r *http.Request) {
 			useSSL = true
 		}
 
+		username := "elastic"
+		if val := r.FormValue("username"); val != "" {
+			username = val
+		}
+
+		password := "changeme"
+		if val := r.FormValue("password"); password != "" {
+			password = val
+		}
+
 		cluster := &Cluster{
 			Hostname: hostname,
 			UseSSL:   useSSL,
+			Username: username,
+			Password: password,
 		}
 
 		err = cluster.Monitor(e.Config.LicensePath)
