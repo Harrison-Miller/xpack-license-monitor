@@ -30,18 +30,20 @@ type ClusterLicense struct {
 type Cluster struct {
 	Hostname string         `json:"hostname"`
 	UseSSL   bool           `json:"usessl"`
+	Username string         `json:"username"`
+	Password string         `json:"password"`
 	Status   ClusterStatus  `json:"-"`
 	License  ClusterLicense `json:"-"`
 	stopchan chan struct{}
 }
 
-func ClusterRequest(path string, body io.Reader, s interface{}) error {
+func (c *Cluster) ClusterRequest(path string, body io.Reader, s interface{}) error {
 	log.Println("GET ", path)
 	req, err := http.NewRequest("GET", path, body)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth("elastic", "changeme")
+	req.SetBasicAuth(c.Username, c.Password)
 
 	transport := http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -75,14 +77,14 @@ func (c *Cluster) BuildPath(path string) string {
 func (c *Cluster) GetClusterStatus() (ClusterStatus, error) {
 	path := c.BuildPath("_cluster/health")
 	var status ClusterStatus
-	err := ClusterRequest(path, nil, &status)
+	err := c.ClusterRequest(path, nil, &status)
 	return status, err
 }
 
 func (c *Cluster) GetClusterLicense() (ClusterLicense, error) {
 	path := c.BuildPath("_xpack/license")
 	var license ClusterLicense
-	err := ClusterRequest(path, nil, &struct {
+	err := c.ClusterRequest(path, nil, &struct {
 		*ClusterLicense `json:"license"`
 	}{
 		&license,

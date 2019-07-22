@@ -78,6 +78,10 @@
                                 <input type="checkbox" class="form-check-input" id="usessl" checked>
                                 <label class="form-check-label" for="usessl">Use SSL</label>
                             </div>
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control bottom-buffer input-lg" id="username" value="elastic">
+                            <label for="password">Password</label>
+                            <input type="text" class="form-control bottom-buffer input-lg" id="password" value="changeme">
                         </div>
                     </div>
                 </div>
@@ -169,7 +173,9 @@
 
         object = {
             hostname: hostname,
-            usessl: $('#usessl').is(":checked")
+            usessl: $("#usessl").is(":checked"),
+            username: $("#username").val(),
+            password: $("#password").val()
         };
 
         $.getJSON("/add", object, function(data){
