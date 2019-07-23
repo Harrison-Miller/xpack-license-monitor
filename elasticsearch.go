@@ -143,13 +143,13 @@ func (c *Cluster) ShouldUpdateLicense() bool {
 	return false
 }
 
-func ClusterJSONRequest(path string, body io.Reader, s interface{}) error {
+func (c *Cluster) ClusterJSONRequest(path string, body io.Reader, s interface{}) error {
 	log.Println("POST ", path)
 	req, err := http.NewRequest("POST", path, body)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth("elastic", "changeme")
+	req.SetBasicAuth(c.Username, c.Password)
 	req.Header.Set("Content-Type", "application/json")
 
 	transport := http.Transport{
@@ -184,7 +184,7 @@ func (c *Cluster) UpdateLicense(licensePath string) error {
 	status := ""
 
 	path := c.BuildPath("_xpack/license")
-	err = ClusterJSONRequest(path, file, &struct {
+	err = c.ClusterJSONRequest(path, file, &struct {
 		Acknowledged *bool   `json:"acknowledged"`
 		Status       *string `json:"license_status"`
 	}{
